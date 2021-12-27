@@ -37,3 +37,12 @@ from functions_mlp import Network
 test_class = Network()
 
 res = test_class.back_propogation(iter=0)
+#%% - test traning
+
+from functions_mlp import Network
+
+test_class = Network()
+test_class.read_data()
+test_class.create_network()
+
+test_class.sgd(num_per_iter=10, iter=1000)
