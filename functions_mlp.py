@@ -25,8 +25,8 @@ class Network:
     """
 
     def __init__(self):
-        self.learning_rate = 5
-        # self.list_nodes = [16, 10]
+        self.learning_rate = 10
+        self.list_nodes = [16, 10]
 
         self.read_data()
         self.create_network()
@@ -41,36 +41,32 @@ class Network:
         self.test_matrix, self.test_labels = self.create_matrix(df=self.test_df)
         self.train_matrix, self.train_labels = self.create_matrix(df=self.train_df)
 
+        # Normalise the Values:
+        self.test_matrix = self.test_matrix / 256
+        self.train_matrix = self.train_matrix / 256
+
     def create_network(self):
         """
-        Manually write in the size of the weights and biases for each layer of the network.
-        :return:
+        Automatically create the weights and biases from self.list_nodes.
         """
-        self.w = {'w1': np.random.randn(16, 784),
-                  'w2': np.random.randn(10, 16)}
-
-        self.b = {'b1': np.random.randn(16),
-                  'b2': np.random.randn(10)}
-
-    # def create_network(self):
-    #     """
-    #     Automatically create the weights and biases from self.list_nodes.
-    #     """
-    #     self.w = {}
-    #     self.b = {}
-    #     for i in range(len(self.list_nodes)):
-    #         self.w['w'+str(i)] = np.random.randn(self.list_nodes[i], 784)
-    #         self.b['b'+str(i)] = np.random.randn(self.list_nodes[i])
+        self.w = {}
+        self.b = {}
+        n_last = 784
+        for i in range(len(self.list_nodes)):
+            self.w['w' + str(i + 1)] = np.random.randn(self.list_nodes[i], n_last)
+            self.b['b' + str(i + 1)] = np.random.randn(self.list_nodes[i])
+            n_last = self.list_nodes[i]
 
     def feedforward(self, image_data: np.ndarray) -> dict:
         res = {}
         res['a0'] = image_data
-        res['z1'] = np.dot(self.w['w1'], image_data) + self.b['b1']
-        res['a1'] = self.sigmoid(res['z1'])
-
-        res['z2'] = np.dot(self.w['w2'], res['a1']) + self.b['b2']
-        res['a2'] = self.sigmoid(res['z2'])
-
+        for i in range(len(self.list_nodes)):
+            n = i + 1
+            res['z' + str(n)] = np.dot(self.w['w' + str(n)], res['a' + str(n - 1)]) + self.b['b' + str(n)]
+            if n == len(self.list_nodes):
+                res['a' + str(n)] = self.sigmoid(res['z' + str(n)])
+            else:
+                res['a' + str(n)] = self.sigmoid(res['z' + str(n)])
         return res
 
     @staticmethod
@@ -93,6 +89,29 @@ class Network:
         return out
 
     @staticmethod
+    def tanh(x_array: np.ndarray) -> np.ndarray:
+        return np.tanh(x=x_array)
+
+    @staticmethod
+    def tanh_deriv(x_array: np.ndarray) -> np.ndarray:
+        return 1 - np.tanh(x_array) ** 2
+
+    @staticmethod
+    def softmax(x_array: np.ndarray) -> np.ndarray:
+        out = np.exp(x_array)/sum(np.exp(x_array))
+        return out
+
+    @staticmethod
+    def relu(x_array: np.ndarray) -> np.ndarray:
+        out = np.maximum(0, x_array)
+        return out
+
+    @staticmethod
+    def relu_deriv(x_array: np.ndarray) -> np.ndarray:
+        out = np.heaviside(x_array, 0)
+        return out
+
+    @staticmethod
     def one_hot(label_vec: np.ndarray) -> np.ndarray:
         """
         One hot encode the labels to make use of them easier later.
@@ -109,37 +128,44 @@ class Network:
         """
         Calculate the cost vector.
         Backpropogate the errors through the network to adjust both the weights and the biases.
+        Automatically deal with the sizes and names of the weights and nodes.
+        :return: end_vals
         """
-        dict_vals = {'dw2': [], 'db2': [], 'dw1': [], 'db1': [], 'Cost': []}
+        w = {'dw' + str(i + 1): [] for i in range(len(self.list_nodes))}
+        b = {'db' + str(i + 1): [] for i in range(len(self.list_nodes))}
+        dict_vals = {**w, **b, 'Cost': []}
+
         for i in range(array_data.shape[1]):
             labels = array_labels[:, i]
             res = self.feedforward(image_data=array_data[:, i])
 
-            delta = self.sig_deriv(res['z2']) * 2 * (res['a2'] - labels)
-            db2_array = delta
-            dw2_array = np.outer(delta, res['a1'].T)
+            delta = self.sig_deriv(res['z' + str(len(self.list_nodes))]) * 2 * (
+                    res['a' + str(len(self.list_nodes))] - labels)
 
-            delta = np.dot(self.w['w2'].T, delta) * self.sig_deriv(res['z1'])
+            n = len(self.list_nodes)
 
-            db1_array = delta
-            dw1_array = np.outer(delta, res['a0'].T)
+            dict_vals['dw' + str(n)].append(np.outer(delta, res['a' + str(len(self.list_nodes) - 1)].T))
+            dict_vals['db' + str(n)].append(delta)
 
-            dict_vals['dw2'].append(dw2_array)
-            dict_vals['db2'].append(db2_array)
+            for i in range(len(self.list_nodes) - 1):
+                n = len(self.list_nodes) - i - 1
+                if n == len(self.list_nodes):
+                    delta = np.dot(self.w['w' + str(n + 1)].T, delta) * self.sig_deriv(res['z' + str(n)])
+                else:
+                    delta = np.dot(self.w['w' + str(n + 1)].T, delta) * self.sig_deriv(res['z' + str(n)])
 
-            dict_vals['dw1'].append(dw1_array)
-            dict_vals['db1'].append(db1_array)
+                dict_vals['dw' + str(n)].append(np.outer(delta, res['a' + str(n - 1)].T))
+                dict_vals['db' + str(n)].append(delta)
 
-            dict_vals['Cost'].append(np.sum((res['a2'] - labels) ** 2))
+            dict_vals['Cost'].append(np.sum((res['a' + str(len(self.list_nodes))] - labels) ** 2))
 
-        end_vals = {'dw2': self.av_array(dict_vals['dw2']),
-                    'db2': self.av_array(dict_vals['db2']),
-                    'dw1': self.av_array(dict_vals['dw1']),
-                    'db1': self.av_array(dict_vals['db1']),
-                    'Average_Cost': np.mean(dict_vals["Cost"])}
+        end_vals = {'Average_Cost': np.mean(dict_vals["Cost"])}
+
+        for i in range(len(self.list_nodes)):
+            end_vals['dw' + str(i + 1)] = self.av_array(dict_vals['dw' + str(i + 1)])
+            end_vals['db' + str(i + 1)] = self.av_array(dict_vals['db' + str(i + 1)])
 
         print(f'Average Cost: {end_vals["Average_Cost"]}')
-
         return end_vals
 
     @staticmethod
@@ -168,10 +194,12 @@ class Network:
 
             vals_dict = self.back_prop(array_data=array_data, array_labels=array_labels)
 
-            self.w['w1'] = self.w['w1'] - vals_dict['dw1'] * self.learning_rate
-            self.b['b1'] = self.b['b1'] - vals_dict['db1'] * self.learning_rate
-            self.w['w2'] = self.w['w2'] - vals_dict['dw2'] * self.learning_rate
-            self.b['b2'] = self.b['b2'] - vals_dict['db2'] * self.learning_rate
+            # l = max(self.learning_rate / (i+1), 0.01)
+            l = self.learning_rate
+            self.w['w1'] = self.w['w1'] - vals_dict['dw1'] * l
+            self.b['b1'] = self.b['b1'] - vals_dict['db1'] * l
+            self.w['w2'] = self.w['w2'] - vals_dict['dw2'] * l
+            self.b['b2'] = self.b['b2'] - vals_dict['db2'] * l
 
             cost_list.append(vals_dict['Average_Cost'])
             # print(f'Generation {i} complete.')
@@ -182,25 +210,34 @@ class Network:
             plt.ylabel('Cost')
             plt.title('Average Cost as a function of Generation Trained')
 
-    def test_model(self) -> pd.DataFrame:
+    def test_model(self, use_train: bool = False) -> pd.DataFrame:
         """
         Test out the models accuracy on the test data provided.
         :return: df
         """
+        if use_train:
+            matrix = self.train_matrix
+            labels = self.train_labels
+        else:
+            matrix = self.test_matrix
+            labels = self.test_labels
         list_corr = []
         list_preds = []
-        for i in range(self.test_matrix.shape[1]):
-            image = self.test_matrix[:, i]
-            actual_val = self.test_labels[i]
+        for i in range(matrix.shape[1]):
+            image = matrix[:, i]
+            actual_val = labels[i]
             res = self.feedforward(image_data=image)
-            pred_val = np.argmax(res['a2'])
+            pred_val = np.argmax(res['a' + str(len(self.list_nodes))])
             if pred_val == actual_val:
                 list_corr.append(1)
             else:
                 list_corr.append(0)
             list_preds.append([pred_val, actual_val])
         df = pd.DataFrame(list_preds, columns=['Predictions', 'Actual'])
-        print(f'Percentage Correct is: {100 * sum(list_corr) / len(list_corr)}%')
+        if use_train:
+            print(f'Percentage Correct is: {100 * sum(list_corr) / len(list_corr)}% \n On Training Data.')
+        else:
+            print(f'Percentage Correct is: {100 * sum(list_corr) / len(list_corr)}% \n On Testing Data.')
         return df
 
     def draw_number(self, val: int):
@@ -212,7 +249,7 @@ class Network:
         image = self.test_matrix[:, val]
         actual_val = self.test_labels[val]
         res = self.feedforward(image_data=image)
-        pred_val = np.argmax(res['a2'])
+        pred_val = np.argmax(res['a' + str(len(self.list_nodes))])
         print(f'Actual Value: {actual_val}')
         print(f'Predicted Value: {pred_val}')
         image = self.test_matrix[:, val].reshape(28, 28)
