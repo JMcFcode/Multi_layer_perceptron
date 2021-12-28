@@ -37,7 +37,7 @@ class Network:
 
     def create_network(self):
         self.w = {'w1': np.random.rand(16, 784) - 0.5,
-                  'w2': np.random.rand(16, 10) - 0.5}
+                  'w2': np.random.rand(10, 16) - 0.5}
 
         self.b = {'b1': np.random.rand(16) - 0.5,
                   'b2': np.random.rand(10) - 0.5}
@@ -48,7 +48,7 @@ class Network:
         res['z1'] = np.dot(self.w['w1'], image_data) + self.b['b1']
         res['a1'] = self.sigmoid(res['z1'])
 
-        res['z2'] = np.dot(self.w['w2'], self.res['a1']) + self.b['b2']
+        res['z2'] = np.dot(self.w['w2'], res['a1']) + self.b['b2']
         res['a2'] = self.sigmoid(res['z2'])
 
         return res
@@ -76,7 +76,7 @@ class Network:
     def one_hot(label_vec: np.ndarray) -> np.ndarray:
         digit_mat = np.zeros((10, label_vec.size))
         for i in range(len(label_vec)):
-            digit_mat[label_vec - 1, i] = 1
+            digit_mat[label_vec[i] - 1, i] = 1
         digit_mat = digit_mat.T
         return digit_mat
 
@@ -86,16 +86,16 @@ class Network:
         Calculate the cost vector.
         """
         dict_vals = {'dw2': [], 'db2': [], 'dw1': [], 'db1': []}
-        for i in range(len(array_data)):
-            labels = array_labels[i]
-            res = self.feedforward(image_data=array_data)
+        for i in range(array_data.shape[1]):
+            labels = array_labels[:, i]
+            res = self.feedforward(image_data=array_data[:, i])
 
             db2_array = self.sig_deriv(res['z2']) * 2 * (res['a2'] - labels)
-            dw2_array = np.outer(db2_array, res['a2'])
+            dw2_array = np.outer(db2_array, res['a1'])
 
-            delta_1 = res['w2'].sum(axis=1) * self.sig_deriv(res['z2'] * 2 * (res['a2'] - labels))
+            delta_1 = np.dot(self.w['w2'].T, 2 * (res['a2'] - labels)) * self.sig_deriv(res['z2'])
             db1_array = self.sig_deriv(res['z1']) * delta_1
-            dw1_array = np.outer(db1_array, res['a1'])
+            dw1_array = np.outer(db1_array, res['image'])
 
             dict_vals['dw2'].append(dw2_array)
             dict_vals['db2'].append(db2_array)
@@ -112,15 +112,15 @@ class Network:
         print('One done!')
         return dw1, db1, dw2, db2
 
-    def sgd(self, num_per_iter: int, iter: int):
+    def sgd(self, num_per_iter: int, num_iter: int):
         """
         Implement Stochastic Gradient Descent Algo.
         :param num_per_iter:
-        :param iter:
+        :param num_iter:
         """
-        for i in range(iter):
-            array_data = self.train_matrix[:,iter: iter + num_per_iter]
-            array_labels = self.one_hot(self.train_labels[iter: iter + num_per_iter])
+        for i in range(num_iter):
+            array_data = self.train_matrix[:, num_iter: num_iter + num_per_iter]
+            array_labels = self.one_hot(self.train_labels[num_iter: num_iter + num_per_iter])
 
             dw1, db1, dw2, db2 = self.back_prop(array_data=array_data, array_labels=array_labels)
 
