@@ -17,9 +17,9 @@ matrix_train = test_class.train_matrix
 label_train = test_class.train_labels
 
 
-# a3 = test_class.feedforward(matrix_train[:,0])
+a3 = test_class.feedforward(matrix_train[:,0])
 
-# cost = test_class.cost_function(actual_vec=a3, digit=label_train[0])
+cost = test_class.cost_function(actual_vec=a3, digit=label_train[0])
 
 
 #%%
@@ -45,4 +45,4 @@ test_class = Network()
 test_class.read_data()
 test_class.create_network()
 
-test_class.sgd(num_per_iter=15, num_iter=10)
+test_class.sgd(num_per_iter=100, num_iter=600)

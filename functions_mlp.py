@@ -70,14 +70,15 @@ class Network:
 
     @staticmethod
     def sig_deriv(x_array: np.ndarray) -> np.ndarray:
-        return np.exp(-x_array) / (1 + np.exp(-x_array)) ** 2
+        out = np.exp(x_array) / np.power((1 + np.exp(x_array)), 2)
+        return np.nan_to_num(out)
 
     @staticmethod
     def one_hot(label_vec: np.ndarray) -> np.ndarray:
         digit_mat = np.zeros((10, label_vec.size))
         for i in range(len(label_vec)):
             digit_mat[label_vec[i] - 1, i] = 1
-        digit_mat = digit_mat.T
+        digit_mat = digit_mat
         return digit_mat
 
     def back_prop(self, array_data: np.ndarray, array_labels: np.ndarray) -> \
@@ -85,7 +86,7 @@ class Network:
         """
         Calculate the cost vector.
         """
-        dict_vals = {'dw2': [], 'db2': [], 'dw1': [], 'db1': []}
+        dict_vals = {'dw2': [], 'db2': [], 'dw1': [], 'db1': [], 'Cost': []}
         for i in range(array_data.shape[1]):
             labels = array_labels[:, i]
             res = self.feedforward(image_data=array_data[:, i])
@@ -93,7 +94,8 @@ class Network:
             db2_array = self.sig_deriv(res['z2']) * 2 * (res['a2'] - labels)
             dw2_array = np.outer(db2_array, res['a1'])
 
-            delta_1 = np.dot(self.w['w2'].T, 2 * (res['a2'] - labels)) * self.sig_deriv(res['z2'])
+            delta_1 = np.dot(self.w['w2'].T, 2 * (res['a2'] - labels) * self.sig_deriv(res['z2']))
+
             db1_array = self.sig_deriv(res['z1']) * delta_1
             dw1_array = np.outer(db1_array, res['image'])
 
@@ -103,13 +105,16 @@ class Network:
             dict_vals['dw1'].append(dw1_array)
             dict_vals['db1'].append(db1_array)
 
+            dict_vals['Cost'].append(np.sum(np.power((res['a2'] - labels), 2)))
+
         dw2 = 1 / len(array_data) * np.sum(dict_vals['dw2'])
         db2 = 1 / len(array_data) * np.sum(dict_vals['db2'])
 
         dw1 = 1 / len(array_data) * np.sum(dict_vals['dw1'])
         db1 = 1 / len(array_data) * np.sum(dict_vals['db1'])
 
-        print('One done!')
+        print(f'Average Cost: {np.mean(dict_vals["Cost"])}')
+
         return dw1, db1, dw2, db2
 
     def sgd(self, num_per_iter: int, num_iter: int):
@@ -125,14 +130,15 @@ class Network:
             dw1, db1, dw2, db2 = self.back_prop(array_data=array_data, array_labels=array_labels)
 
             self.w['w1'] = self.w['w1'] - dw1 * self.learning_rate
-            self.w['b1'] = self.w['b1'] - db1 * self.learning_rate
+            self.b['b1'] = self.b['b1'] - db1 * self.learning_rate
             self.w['w2'] = self.w['w2'] - dw2 * self.learning_rate
-            self.w['b2'] = self.w['b2'] - db2 * self.learning_rate
+            self.b['b2'] = self.b['b2'] - db2 * self.learning_rate
 
             print(f'Generation {i} complete.')
 
-    def test_model(self):
-        pass
-
-    def draw_number(self):
-        pass
+    # def test_model(self):
+    #     for image in self.test_matrix:
+    #         pass
+    #
+    # def draw_number(self):
+    #     pass
