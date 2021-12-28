@@ -25,8 +25,8 @@ class Network:
     """
 
     def __init__(self):
-        self.learning_rate = 10
-        self.list_nodes = [16, 10]
+        self.learning_rate = 5
+        self.list_nodes = [100, 20, 10]
 
         self.read_data()
         self.create_network()
@@ -196,10 +196,11 @@ class Network:
 
             # l = max(self.learning_rate / (i+1), 0.01)
             l = self.learning_rate
-            self.w['w1'] = self.w['w1'] - vals_dict['dw1'] * l
-            self.b['b1'] = self.b['b1'] - vals_dict['db1'] * l
-            self.w['w2'] = self.w['w2'] - vals_dict['dw2'] * l
-            self.b['b2'] = self.b['b2'] - vals_dict['db2'] * l
+
+            for i in range(len(self.list_nodes)):
+                n = i+1
+                self.w['w' + str(n)] = self.w['w' + str(n)] - vals_dict['dw' + str(n)] * l
+                self.b['b' + str(n)] = self.b['b' + str(n)] - vals_dict['db' + str(n)] * l
 
             cost_list.append(vals_dict['Average_Cost'])
             # print(f'Generation {i} complete.')
