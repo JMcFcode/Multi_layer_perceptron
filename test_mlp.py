@@ -46,7 +46,8 @@ test_class = Network()
 
 test_class.sgd(num_per_iter=100, num_iter=600, draw_cost=True)
 
-df = test_class.test_model()
+df_test = test_class.test_model(use_train=False)
+df_train = test_class.test_model(use_train=True)
 
 
 #%% - Look at specific examples:
