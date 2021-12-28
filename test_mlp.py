@@ -40,9 +40,18 @@ res = test_class.back_propogation(iter=0)
 #%% - test traning
 
 from functions_mlp import Network
+import random
 
 test_class = Network()
-test_class.read_data()
-test_class.create_network()
 
 test_class.sgd(num_per_iter=100, num_iter=600, draw_cost=True)
+
+df = test_class.test_model()
+
+
+#%% - Look at specific examples:
+
+# val = random.randint(0,1000)
+
+val = 100
+test_class.draw_number(val=val)
