@@ -45,4 +45,4 @@ test_class = Network()
 test_class.read_data()
 test_class.create_network()
 
-test_class.sgd(num_per_iter=100, num_iter=600)
+test_class.sgd(num_per_iter=100, num_iter=600, draw_cost=True)

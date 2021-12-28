@@ -7,9 +7,12 @@ Created on Sun Dec 19 08:46:58 2021
 
 Building a multi_layer_perceptron from the ground up
 """
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
+
+sns.set()
 
 
 class Network:
@@ -26,7 +29,7 @@ class Network:
         self.read_data()
         self.create_network()
         self.iter_size = 50
-        self.learning_rate = 0.1
+        self.learning_rate = 0.2
 
     def read_data(self):
         self.test_df = pd.read_csv('mnist_test.csv')
@@ -81,8 +84,7 @@ class Network:
         digit_mat = digit_mat
         return digit_mat
 
-    def back_prop(self, array_data: np.ndarray, array_labels: np.ndarray) -> \
-            (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+    def back_prop(self, array_data: np.ndarray, array_labels: np.ndarray) -> dict:
         """
         Calculate the cost vector.
         """
@@ -107,38 +109,49 @@ class Network:
 
             dict_vals['Cost'].append(np.sum(np.power((res['a2'] - labels), 2)))
 
-        dw2 = 1 / len(array_data) * np.sum(dict_vals['dw2'])
-        db2 = 1 / len(array_data) * np.sum(dict_vals['db2'])
+        end_vals = {}
+        end_vals['dw2'] = 1 / len(array_data) * np.sum(dict_vals['dw2'])
+        end_vals['db2'] = 1 / len(array_data) * np.sum(dict_vals['db2'])
 
-        dw1 = 1 / len(array_data) * np.sum(dict_vals['dw1'])
-        db1 = 1 / len(array_data) * np.sum(dict_vals['db1'])
+        end_vals['dw1'] = 1 / len(array_data) * np.sum(dict_vals['dw1'])
+        end_vals['db1'] = 1 / len(array_data) * np.sum(dict_vals['db1'])
 
-        print(f'Average Cost: {np.mean(dict_vals["Cost"])}')
+        end_vals['Average_Cost'] = np.mean(dict_vals["Cost"])
+        print(f'Average Cost: {end_vals["Average_Cost"]}')
 
-        return dw1, db1, dw2, db2
+        return end_vals
 
-    def sgd(self, num_per_iter: int, num_iter: int):
+    def sgd(self, num_per_iter: int, num_iter: int, draw_cost=False):
         """
         Implement Stochastic Gradient Descent Algo.
+        :param draw_cost: Option to Draw function of cost.
         :param num_per_iter:
         :param num_iter:
         """
+        cost_list = []
         for i in range(num_iter):
             array_data = self.train_matrix[:, num_iter: num_iter + num_per_iter]
             array_labels = self.one_hot(self.train_labels[num_iter: num_iter + num_per_iter])
 
-            dw1, db1, dw2, db2 = self.back_prop(array_data=array_data, array_labels=array_labels)
+            vals_dict = self.back_prop(array_data=array_data, array_labels=array_labels)
 
-            self.w['w1'] = self.w['w1'] - dw1 * self.learning_rate
-            self.b['b1'] = self.b['b1'] - db1 * self.learning_rate
-            self.w['w2'] = self.w['w2'] - dw2 * self.learning_rate
-            self.b['b2'] = self.b['b2'] - db2 * self.learning_rate
+            self.w['w1'] = self.w['w1'] - vals_dict['dw1'] * self.learning_rate
+            self.b['b1'] = self.b['b1'] - vals_dict['db1'] * self.learning_rate
+            self.w['w2'] = self.w['w2'] - vals_dict['dw2'] * self.learning_rate
+            self.b['b2'] = self.b['b2'] - vals_dict['db2'] * self.learning_rate
 
+            cost_list.append(vals_dict['Average_Cost'])
             print(f'Generation {i} complete.')
 
-    # def test_model(self):
-    #     for image in self.test_matrix:
-    #         pass
-    #
-    # def draw_number(self):
-    #     pass
+        if draw_cost:
+            plt.plot(range(num_iter), cost_list)
+            plt.xlabel('Generation')
+            plt.ylabel('Cost')
+            plt.title('Average Cost as a function of Generation Trained')
+
+    def test_model(self):
+        for image in self.test_matrix:
+            pass
+
+    def draw_number(self):
+        pass
