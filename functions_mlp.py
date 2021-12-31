@@ -25,13 +25,17 @@ class Network:
     """
 
     def __init__(self):
-        self.learning_rate = 5
-        self.list_nodes = [100, 20, 10]
-        self.activation_list = ['sigmoid', 'sigmoid', 'sigmoid']
+        self.learning_rate = 10
+        self.list_nodes = [20, 10]
+        self.activation_list = ['sigmoid', 'softmax']
         self.func_dict = {'sigmoid': [self.sigmoid, self.sig_deriv],
-                          'softmax': [],
+                          'softmax': [self.softmax, self.linear_deriv],  # Used linear deriv as applies here also.
                           'tanh': [self.tanh, self.tanh_deriv],
-                          'relu': [self.relu, self.relu_deriv]}
+                          'relu': [self.relu, self.relu_deriv],
+                          'linear': [self.linear, self.linear_deriv]}
+
+        if len(self.list_nodes) != len(self.activation_list):
+            raise Exception('Activation list length not equal to size of neural network.')
 
         self.read_data()
         self.create_network()
@@ -47,8 +51,8 @@ class Network:
         self.train_matrix, self.train_labels = self.create_matrix(df=self.train_df)
 
         # Normalise the Values:
-        self.test_matrix = self.test_matrix / 256
-        self.train_matrix = self.train_matrix / 256
+        self.test_matrix = self.test_matrix / np.amax(self.test_matrix)
+        self.train_matrix = self.train_matrix / np.amax(self.train_matrix)
 
     def create_network(self):
         """
@@ -92,6 +96,14 @@ class Network:
         return out
 
     @staticmethod
+    def linear(x_array: np.ndarray) -> np.ndarray:
+        return x_array
+
+    @staticmethod
+    def linear_deriv(x_array: np.ndarray) -> np.ndarray:
+        return np.ones(len(x_array))
+
+    @staticmethod
     def tanh(x_array: np.ndarray) -> np.ndarray:
         return np.tanh(x_array)
 
@@ -101,7 +113,7 @@ class Network:
 
     @staticmethod
     def softmax(x_array: np.ndarray) -> np.ndarray:
-        out = np.exp(x_array)/sum(np.exp(x_array))
+        out = np.exp(x_array) / sum(np.exp(x_array))
         return out
 
     @staticmethod
@@ -141,10 +153,9 @@ class Network:
         for i in range(array_data.shape[1]):
             labels = array_labels[:, i]
             res = self.feedforward(image_data=array_data[:, i])
-            
-            act_func = self.func_dict[self.activation_list[0]][0]
+
             deriv_func = self.func_dict[self.activation_list[0]][1]
-            
+
             delta = deriv_func(res['z' + str(len(self.list_nodes))]) * 2 * (
                     res['a' + str(len(self.list_nodes))] - labels)
 
@@ -155,14 +166,10 @@ class Network:
 
             for i in range(len(self.list_nodes) - 1):
                 n = len(self.list_nodes) - i - 1
-                
-                act_func = self.func_dict[self.activation_list[i+1]][0]
-                deriv_func = self.func_dict[self.activation_list[i+1]][1]
-                
-                if n == len(self.list_nodes):
-                    delta = np.dot(self.w['w' + str(n + 1)].T, delta) * deriv_func(res['z' + str(n)])
-                else:
-                    delta = np.dot(self.w['w' + str(n + 1)].T, delta) * deriv_func(res['z' + str(n)])
+
+                deriv_func = self.func_dict[self.activation_list[i + 1]][1]
+
+                delta = np.dot(self.w['w' + str(n + 1)].T, delta) * deriv_func(res['z' + str(n)])
 
                 dict_vals['dw' + str(n)].append(np.outer(delta, res['a' + str(n - 1)].T))
                 dict_vals['db' + str(n)].append(delta)
@@ -207,8 +214,8 @@ class Network:
             # l = max(self.learning_rate / (i+1), 0.01)
             l = self.learning_rate
 
-            for i in range(len(self.list_nodes)):
-                n = i+1
+            for j in range(len(self.list_nodes)):
+                n = j + 1
                 self.w['w' + str(n)] = self.w['w' + str(n)] - vals_dict['dw' + str(n)] * l
                 self.b['b' + str(n)] = self.b['b' + str(n)] - vals_dict['db' + str(n)] * l
 
@@ -216,9 +223,11 @@ class Network:
             # print(f'Generation {i} complete.')
 
         if draw_cost:
-            plt.plot(range(num_iter), cost_list)
+            plt.plot(range(num_iter), cost_list,
+                     label='\u03B1 :' + str(self.learning_rate) + '\n N: ' + str(self.list_nodes))
             plt.xlabel('Generation')
             plt.ylabel('Cost')
+            plt.legend(loc='best')
             plt.title('Average Cost as a function of Generation Trained')
 
     def test_model(self, use_train: bool = False) -> pd.DataFrame:
@@ -232,8 +241,10 @@ class Network:
         else:
             matrix = self.test_matrix
             labels = self.test_labels
+
         list_corr = []
         list_preds = []
+
         for i in range(matrix.shape[1]):
             image = matrix[:, i]
             actual_val = labels[i]

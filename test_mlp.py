@@ -44,7 +44,7 @@ import random
 
 test_class = Network()
 
-test_class.sgd(num_per_iter=100, num_iter=600, draw_cost=True)
+test_class.sgd(num_per_iter=400, num_iter=150, draw_cost=True)
 
 df_test = test_class.test_model(use_train=False)
 df_train = test_class.test_model(use_train=True)
@@ -54,5 +54,5 @@ df_train = test_class.test_model(use_train=True)
 
 # val = random.randint(0,1000)
 
-val = 100
+val = 102
 test_class.draw_number(val=val)
