@@ -40,7 +40,6 @@ res = test_class.back_propogation(iter=0)
 #%% - test traning
 
 from functions_mlp import Network
-import random
 
 test_class = Network()
 
@@ -51,7 +50,7 @@ df_train = test_class.test_model(use_train=True)
 
 
 #%% - Look at specific examples:
-
+import random
 # val = random.randint(0,1000)
 
 val = 102
