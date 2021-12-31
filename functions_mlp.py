@@ -19,9 +19,8 @@ sns.set()
 class Network:
     """
     We will use a neural network to try and create a model that can read 
-    numbers.
-    We will use the sigmoid function as our activation function.
-    We will have a 2 layer network.
+    numbers. 
+    Images are 28x28 and range in brightness from 0 to 255.
     """
 
     def __init__(self):
@@ -200,9 +199,10 @@ class Network:
     def sgd(self, num_per_iter: int, num_iter: int, draw_cost=False):
         """
         Implement Stochastic Gradient Descent Algo.
+        Using the mini batch approach.
         :param draw_cost: Option to Draw function of cost.
-        :param num_per_iter:
-        :param num_iter:
+        :param num_per_iter: Number of samples per batch
+        :param num_iter: Number of batches
         """
         cost_list = []
         for i in range(num_iter):
@@ -266,7 +266,7 @@ class Network:
         """
         Method that will draw the number trying to be read.
         Method will also tell you our prediction and the actual value
-        :param val:
+        :param val: Index of value you'd like to display
         """
         image = self.test_matrix[:, val]
         actual_val = self.test_labels[val]

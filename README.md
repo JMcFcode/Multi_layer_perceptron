@@ -4,6 +4,21 @@ Multi Layer Perceptron implemented from scratch.
 Optimized for use on the MNIST Dataset provided at:
 https://www.kaggle.com/oddrationale/mnist-in-csv
 
+### Requirements:
+The following packages must be available for import:
+```commandline
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import random
+```
+
+### References:
+http://neuralnetworksanddeeplearning.com/chap2.html
+
+https://www.3blue1brown.com/lessons/backpropagation-calculus
+
 ## Usage:
 ```
 from functions_mlp import Network
@@ -27,4 +42,8 @@ self.activation_list = ['sigmoid', 'softmax']
 ```
 
 self.list_nodes is the number of nodes that will be in the network per layer. To add more layers simply make the list longer.
-self.activation_list defines the activation functions for each layer. Currently the working choices are between sigmoid, softmax and tanh.
+self.activation_list defines the activation functions for each layer. 
+Currently the working choices are between sigmoid, softmax and tanh.
+
+
+
