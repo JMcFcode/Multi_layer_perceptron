@@ -5,7 +5,7 @@ Created on Sun Dec 19 08:46:58 2021
 
 @author: joelmcfarlane
 
-Building a multi_layer_perceptron from the ground up
+Building a multi_layer_perceptron from the ground up.
 """
 
 import matplotlib.pyplot as plt
@@ -27,6 +27,11 @@ class Network:
     def __init__(self):
         self.learning_rate = 5
         self.list_nodes = [100, 20, 10]
+        self.activation_list = ['sigmoid', 'sigmoid', 'sigmoid']
+        self.func_dict = {'sigmoid': [self.sigmoid, self.sig_deriv],
+                          'softmax': [],
+                          'tanh': [self.tanh, self.tanh_deriv],
+                          'relu': [self.relu, self.relu_deriv]}
 
         self.read_data()
         self.create_network()
@@ -63,10 +68,8 @@ class Network:
         for i in range(len(self.list_nodes)):
             n = i + 1
             res['z' + str(n)] = np.dot(self.w['w' + str(n)], res['a' + str(n - 1)]) + self.b['b' + str(n)]
-            if n == len(self.list_nodes):
-                res['a' + str(n)] = self.sigmoid(res['z' + str(n)])
-            else:
-                res['a' + str(n)] = self.sigmoid(res['z' + str(n)])
+            act_func = self.func_dict[self.activation_list[i]][0]
+            res['a' + str(n)] = act_func(res['z' + str(n)])
         return res
 
     @staticmethod
@@ -90,7 +93,7 @@ class Network:
 
     @staticmethod
     def tanh(x_array: np.ndarray) -> np.ndarray:
-        return np.tanh(x=x_array)
+        return np.tanh(x_array)
 
     @staticmethod
     def tanh_deriv(x_array: np.ndarray) -> np.ndarray:
@@ -138,8 +141,11 @@ class Network:
         for i in range(array_data.shape[1]):
             labels = array_labels[:, i]
             res = self.feedforward(image_data=array_data[:, i])
-
-            delta = self.sig_deriv(res['z' + str(len(self.list_nodes))]) * 2 * (
+            
+            act_func = self.func_dict[self.activation_list[0]][0]
+            deriv_func = self.func_dict[self.activation_list[0]][1]
+            
+            delta = deriv_func(res['z' + str(len(self.list_nodes))]) * 2 * (
                     res['a' + str(len(self.list_nodes))] - labels)
 
             n = len(self.list_nodes)
@@ -149,10 +155,14 @@ class Network:
 
             for i in range(len(self.list_nodes) - 1):
                 n = len(self.list_nodes) - i - 1
+                
+                act_func = self.func_dict[self.activation_list[i+1]][0]
+                deriv_func = self.func_dict[self.activation_list[i+1]][1]
+                
                 if n == len(self.list_nodes):
-                    delta = np.dot(self.w['w' + str(n + 1)].T, delta) * self.sig_deriv(res['z' + str(n)])
+                    delta = np.dot(self.w['w' + str(n + 1)].T, delta) * deriv_func(res['z' + str(n)])
                 else:
-                    delta = np.dot(self.w['w' + str(n + 1)].T, delta) * self.sig_deriv(res['z' + str(n)])
+                    delta = np.dot(self.w['w' + str(n + 1)].T, delta) * deriv_func(res['z' + str(n)])
 
                 dict_vals['dw' + str(n)].append(np.outer(delta, res['a' + str(n - 1)].T))
                 dict_vals['db' + str(n)].append(delta)
