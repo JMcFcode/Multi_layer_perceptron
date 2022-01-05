@@ -41,7 +41,9 @@ res = test_class.back_propogation(iter=0)
 
 from functions_mlp import Network
 
-test_class = Network()
+test_class = Network(list_nodes=[16,10], 
+                     act_list=['sigmoid', 'softmax'],
+                     l_rate=10)
 
 test_class.sgd(num_per_iter=400, num_iter=150, draw_cost=True)
 

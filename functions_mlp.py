@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+import utils
+
 sns.set()
 
 
@@ -23,10 +25,13 @@ class Network:
     Images are 28x28 and range in brightness from 0 to 255.
     """
 
-    def __init__(self):
-        self.learning_rate = 10
-        self.list_nodes = [20, 10]
-        self.activation_list = ['sigmoid', 'softmax']
+    def __init__(self, list_nodes: list = [20, 10], l_rate: float = 10, act_list: list = ['sigmoid', 'softmax'],
+                 epochs: int = 2):
+
+        self.learning_rate = l_rate
+        self.list_nodes = list_nodes
+        self.activation_list = act_list
+        self.epochs = epochs
         self.func_dict = {'sigmoid': [self.sigmoid, self.sig_deriv],
                           'softmax': [self.softmax, self.linear_deriv],  # Used linear deriv as applies here also.
                           'tanh': [self.tanh, self.tanh_deriv],
@@ -43,15 +48,8 @@ class Network:
         """
         Read in the data from the csv files that should be saved in the same directory as this file.
         """
-        self.test_df = pd.read_csv('mnist_test.csv')
-        self.train_df = pd.read_csv('mnist_train.csv')
-
-        self.test_matrix, self.test_labels = self.create_matrix(df=self.test_df)
-        self.train_matrix, self.train_labels = self.create_matrix(df=self.train_df)
-
-        # Normalise the Values:
-        self.test_matrix = self.test_matrix / np.amax(self.test_matrix)
-        self.train_matrix = self.train_matrix / np.amax(self.train_matrix)
+        self.test_matrix, self.test_labels = utils.read_data(csv_path='mnist_test.csv')
+        self.train_matrix, self.train_labels = utils.read_data(csv_path='mnist_train.csv')
 
     def create_network(self):
         """
@@ -74,17 +72,6 @@ class Network:
             act_func = self.func_dict[self.activation_list[i]][0]
             res['a' + str(n)] = act_func(res['z' + str(n)])
         return res
-
-    @staticmethod
-    def create_matrix(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
-        """
-        This is for turning the original dataset into useful values.
-        :param df:
-        :return: two arrays, one with the matrix and one with the label vector!
-        """
-        matrix = np.array(df.drop(columns=['label'])).T
-        labels = np.array(df['label'])
-        return matrix, labels
 
     @staticmethod
     def sigmoid(x_array):
@@ -205,6 +192,8 @@ class Network:
         :param num_iter: Number of batches
         """
         cost_list = []
+        # for epoch in range(self.epochs): # Add epochs later.
+
         for i in range(num_iter):
             array_data = self.train_matrix[:, num_iter: num_iter + num_per_iter]
             array_labels = self.one_hot(self.train_labels[num_iter: num_iter + num_per_iter])
