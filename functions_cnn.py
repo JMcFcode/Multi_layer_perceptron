@@ -22,6 +22,7 @@ class MyDataset(Dataset):
     """
     Has Three Required methods, all represented here.
     """
+
     def __init__(self, data: np.ndarray, target: np.ndarray, transform=None):
         data = utils.matrix_3d(data)
         data = np.expand_dims(data, 1)
@@ -71,11 +72,13 @@ class MNIST:
     def __init__(self):
         self.batch_size = 100
         self.num_workers = 5
-        self.net = CNN()
-        self.epochs = 5
+        self.epochs = 10
         self.learning_rate = 0.05
+        self.momentum = 0.9
+
+        self.net = CNN()
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.SGD(self.net.parameters(), lr=self.learning_rate, momentum=0.9)
+        self.optimizer = optim.SGD(self.net.parameters(), lr=self.learning_rate, momentum=self.momentum)
 
         self.get_data()
 
@@ -93,6 +96,7 @@ class MNIST:
     def train_net(self, plot_graph=False):
 
         list_cost = []
+        list_perc_corr = []
 
         for epoch in range(self.epochs):  # loop over the dataset multiple times
 
@@ -111,42 +115,56 @@ class MNIST:
 
                 list_cost.append(loss.item())
                 if i % 10 == 0:
-                    print(f'Loss: {round(loss.item(), 4)}, Epoch: {epoch+1}')
-
+                    print(f'Loss: {round(loss.item(), 4)}, Epoch: {epoch + 1}')
+            df, perc_corr = self.test_network()
+            list_perc_corr.append(perc_corr)
         print('Finished Training')
 
         if plot_graph:
-            x_scale = np.arange(len(list_cost))
-            plt.plot(x_scale, list_cost,
-                     label='\u03B1 :' + str(self.learning_rate) + f'\n Epochs: {self.epochs}')
-            plt.xlabel('Generation')
-            plt.ylabel('Cost')
-            plt.legend(loc='best')
+            fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
 
-    def test_network(self) -> pd.DataFrame:
+            ax1_x_scale = np.arange(len(list_cost))
+            ax1.plot(ax1_x_scale, list_cost,
+                     label='\u03B1 :' + str(self.learning_rate) + f'\n Epochs: {self.epochs}')
+            ax1.set_xlabel('Generation')
+            ax1.set_ylabel('Cost')
+            ax1.legend(loc='best')
+            ax1.set_title('Cost vs Batch Trained')
+
+            ax2_x_scale = np.arange(1, self.epochs + 1)
+            ax2.plot(ax2_x_scale, list_perc_corr, label=f'Momentum: {self.momentum} \n Batch Size: {self.batch_size}')
+            ax2.set_xlabel('Epoch')
+            ax2.set_ylabel('Accuracy on test sample')
+            ax2.legend(loc='best')
+            ax2.set_title('Accuracy vs Epoch')
+
+            fig.tight_layout()
+
+    def test_network(self) -> (pd.DataFrame, float):
         correct = 0
         total = 0
 
         list_pred = []
         list_act = []
-        # since we're not training, we don't need to calculate the gradients for our outputs
-        with torch.no_grad():
+
+        with torch.no_grad():   # Doesn't calc Gradients as not training
             for data in self.test_dataloader:
                 images, labels = data
-                # calculate outputs by running images through the network
-                outputs = self.net(images)
-                # the class with the highest energy is what we choose as prediction
-                _, predicted = torch.max(outputs.data, 1)
+                outputs = self.net(images)  # Run the images through the network
+                _, predicted = torch.max(outputs.data, 1)   # Class with the highest output is the prediction
+
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
+
                 list_act.append([tens.item() for tens in labels])
                 list_pred.append([tens.item() for tens in predicted])
 
         df = pd.DataFrame(data={'Predicted': utils.flat_list(list_pred),
                                 'Actual': utils.flat_list(list_act)})
-        print(f'Test Data Accuracy: {round(100 * correct / total, 2)}%')
+        perc_correct = 100 * correct / total
+        print(f'Test Data Accuracy: {round(perc_correct, 2)}%')
         df['Correct'] = df['Predicted'] == df['Actual']
-        return df
+        return df, perc_correct
 
-    def plot_example(self):
-        pass
+
+
