@@ -26,4 +26,4 @@ test_class = MNIST()
 
 test_class.train_net(plot_graph=True)
 
-cnn_res = test_class.test_network()
+cnn_res, perc_corr = test_class.test_network()

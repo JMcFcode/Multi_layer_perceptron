@@ -26,7 +26,7 @@ class Network:
     """
 
     def __init__(self, list_nodes: list = [20, 10], l_rate: float = 10, act_list: list = ['sigmoid', 'softmax'],
-                 epochs: int = 2):
+                 epochs: int = 5):
 
         self.learning_rate = l_rate
         self.list_nodes = list_nodes
@@ -192,27 +192,28 @@ class Network:
         :param num_iter: Number of batches
         """
         cost_list = []
-        # for epoch in range(self.epochs): # Add epochs later.
+        for epoch in range(self.epochs): # Add epochs later.
 
-        for i in range(num_iter):
-            array_data = self.train_matrix[:, num_iter: num_iter + num_per_iter]
-            array_labels = self.one_hot(self.train_labels[num_iter: num_iter + num_per_iter])
+            for i in range(num_iter):
+                array_data = self.train_matrix[:, num_iter: num_iter + num_per_iter]
+                array_labels = self.one_hot(self.train_labels[num_iter: num_iter + num_per_iter])
 
-            vals_dict = self.back_prop(array_data=array_data, array_labels=array_labels)
+                vals_dict = self.back_prop(array_data=array_data, array_labels=array_labels)
 
-            # l = max(self.learning_rate / (i+1), 0.01)
-            l = self.learning_rate
+                # l = max(self.learning_rate / (i+1), 0.01)
+                l = self.learning_rate
 
-            for j in range(len(self.list_nodes)):
-                n = j + 1
-                self.w['w' + str(n)] = self.w['w' + str(n)] - vals_dict['dw' + str(n)] * l
-                self.b['b' + str(n)] = self.b['b' + str(n)] - vals_dict['db' + str(n)] * l
+                for j in range(len(self.list_nodes)):
+                    n = j + 1
+                    self.w['w' + str(n)] = self.w['w' + str(n)] - vals_dict['dw' + str(n)] * l
+                    self.b['b' + str(n)] = self.b['b' + str(n)] - vals_dict['db' + str(n)] * l
 
-            cost_list.append(vals_dict['Average_Cost'])
-            # print(f'Generation {i} complete.')
+                cost_list.append(vals_dict['Average_Cost'])
+                # print(f'Generation {i} complete.')
+            print(f'Epoch: {epoch + 1} Complete.')
 
         if draw_cost:
-            plt.plot(range(num_iter), cost_list,
+            plt.plot(range(num_iter * self.epochs), cost_list,
                      label='\u03B1 :' + str(self.learning_rate) + '\n N: ' + str(self.list_nodes))
             plt.xlabel('Generation')
             plt.ylabel('Cost')
